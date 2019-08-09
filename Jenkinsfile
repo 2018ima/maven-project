@@ -3,7 +3,7 @@ pipeline {
     tools{
         maven 'local maven'
     }
-    
+
     stages{
         stage('Build'){
             steps {
@@ -11,10 +11,19 @@ pipeline {
             }
             post {
                 success {
-                    echo 'save...'
+                    echo '開始存檔惹....'
                     archiveArtifacts artifacts: '**/target/*.war'
                 }
             }
         }
+        stage('Deploy to staging'){
+            steps{
+                build job:'deploy-to-staging'
+            }
+        }
+
+
+
+
     }
 }
