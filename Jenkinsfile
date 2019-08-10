@@ -1,48 +1,46 @@
 pipeline {
     agent any
+
     tools{
         maven 'local maven'
     }
 
-    stages{
+    parameters{
+        string(name: 'tomcat_dev', defaultValue: '13.58.73.241', description: 'Staging Server')
+        string(name: 'tomcat_prod', defaultValue: '18.223.158.100', description: 'Production Server')
+    }
+
+    triggers {
+         pollSCM('* * * * *')
+     }
+
+     stages{
         stage('Build'){
             steps {
                 sh 'mvn clean package'
             }
             post {
                 success {
-                    echo '開始存檔....'
+                    echo '開始存ㄌ...'
                     archiveArtifacts artifacts: '**/target/*.war'
                 }
             }
         }
-        stage('Deploy to staging'){
-            steps{
-                build job:'deploy-to-staging'
-            }
-        }
 
-         stage ('Deploy to Production'){
-            steps{
-                timeout(time:5, unit:'DAYS'){
-                    input message:'是否部署到生產環境？' 
+     stage ('Deployments'){
+            parallel{
+                stage ('Deploy to Staging'){
+                    steps {
+                        sh "scp -i /home/erwin/tomcat-demo.pem **/target/*.war ec2-user@${params.tomcat_dev}:/var/lib/tomcat8/webapps"
+                    }
                 }
 
-                build job: 'deploy-to-production'
-            }
-            post {
-                success {
-                    echo '成功部署到生產環境'
-                }
-
-                failure {
-                    echo '部署失敗'
+                stage ("Deploy to Production"){
+                    steps {
+                        sh "scp -i /home/erwin/tomcat-demo.pem **/target/*.war ec2-user@${params.tomcat_prod}:/var/lib/tomcat8/webapps"
+                    }
                 }
             }
         }
-
-
-
-
     }
 }
